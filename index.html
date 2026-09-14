@@ -1,0 +1,583 @@
+```html
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keyboard Tester</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: #0b0b0f;
+    color: #eee;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 35px 20px;
+}
+
+h1 {
+    margin: 0 0 20px;
+    font-size: 32px;
+}
+
+.controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+select, button {
+    background: #18181f;
+    color: white;
+    border: 1px solid #33333d;
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+button:hover,
+select:hover {
+    border-color: #744cff;
+}
+
+.keyboard-wrapper {
+    width: 100%;
+    max-width: 1250px;
+    overflow-x: auto;
+    padding: 20px;
+}
+
+.keyboard {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    width: max-content;
+    min-width: 700px;
+    margin: auto;
+}
+
+.row {
+    display: flex;
+    gap: 7px;
+}
+
+.key {
+    width: 55px;
+    height: 55px;
+    background: #18181f;
+    border: 1px solid #30303a;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: bold;
+    user-select: none;
+    transition: 0.05s;
+    box-shadow: 0 3px 0 #09090c;
+}
+
+.key.pressed {
+    background: #744cff;
+    border-color: #9a7cff;
+    box-shadow: 0 0 18px #744cff;
+    transform: translateY(2px);
+}
+
+.key.wide-125 {
+    width: 70px;
+}
+
+.key.wide-150 {
+    width: 84px;
+}
+
+.key.wide-175 {
+    width: 98px;
+}
+
+.key.wide-200 {
+    width: 112px;
+}
+
+.key.wide-225 {
+    width: 126px;
+}
+
+.key.wide-275 {
+    width: 154px;
+}
+
+.key.space {
+    width: 300px;
+}
+
+.key.small {
+    width: 42px;
+}
+
+.info {
+    margin-top: 20px;
+    width: min(700px, 95%);
+    background: #121218;
+    border: 1px solid #292933;
+    border-radius: 12px;
+    padding: 18px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    text-align: center;
+}
+
+.info-box {
+    background: #1a1a22;
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.label {
+    color: #888;
+    font-size: 12px;
+}
+
+.value {
+    margin-top: 5px;
+    font-weight: bold;
+    color: #bcaeff;
+}
+
+.counter {
+    margin-top: 15px;
+    color: #999;
+}
+
+@media (max-width: 700px) {
+    .info {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<h1>⌨ Keyboard Tester</h1>
+
+<div class="controls">
+
+    <select id="layout">
+        <option value="60">60%</option>
+        <option value="65" selected>65%</option>
+        <option value="75">75%</option>
+        <option value="tkl">TKL</option>
+        <option value="full">Full Size</option>
+    </select>
+
+    <button onclick="resetKeys()">Reset</button>
+
+</div>
+
+<div class="keyboard-wrapper">
+    <div id="keyboard" class="keyboard"></div>
+</div>
+
+<div class="info">
+
+    <div class="info-box">
+        <div class="label">KEY</div>
+        <div id="keyName" class="value">-</div>
+    </div>
+
+    <div class="info-box">
+        <div class="label">CODE</div>
+        <div id="keyCode" class="value">-</div>
+    </div>
+
+    <div class="info-box">
+        <div class="label">STATUS</div>
+        <div id="status" class="value">Waiting</div>
+    </div>
+
+</div>
+
+<div class="counter">
+    Pressed: <span id="counter">0</span>
+</div>
+
+
+<script>
+
+const keyboard = document.getElementById("keyboard");
+const layoutSelect = document.getElementById("layout");
+
+const keyName = document.getElementById("keyName");
+const keyCode = document.getElementById("keyCode");
+const status = document.getElementById("status");
+const counter = document.getElementById("counter");
+
+let pressedKeys = new Set();
+
+
+/* =========================
+   KEYBOARD DATA
+========================= */
+
+const rows = [
+
+    [
+        ["Escape", "Esc"],
+        ["F1","F1"], ["F2","F2"], ["F3","F3"], ["F4","F4"],
+        ["F5","F5"], ["F6","F6"], ["F7","F7"], ["F8","F8"],
+        ["F9","F9"], ["F10","F10"], ["F11","F11"], ["F12","F12"]
+    ],
+
+    [
+        ["Backquote","`"],
+        ["Digit1","1"], ["Digit2","2"], ["Digit3","3"], ["Digit4","4"],
+        ["Digit5","5"], ["Digit6","6"], ["Digit7","7"], ["Digit8","8"],
+        ["Digit9","9"], ["Digit0","0"],
+        ["Minus","-"], ["Equal","="],
+        ["Backspace","Backspace"]
+    ],
+
+    [
+        ["Tab","Tab"],
+        ["KeyQ","Q"], ["KeyW","W"], ["KeyE","E"], ["KeyR","R"],
+        ["KeyT","T"], ["KeyY","Y"], ["KeyU","U"], ["KeyI","I"],
+        ["KeyO","O"], ["KeyP","P"],
+        ["BracketLeft","["], ["BracketRight","]"], ["Backslash","\\"]
+    ],
+
+    [
+        ["CapsLock","Caps"],
+        ["KeyA","A"], ["KeyS","S"], ["KeyD","D"], ["KeyF","F"],
+        ["KeyG","G"], ["KeyH","H"], ["KeyJ","J"], ["KeyK","K"],
+        ["KeyL","L"],
+        ["Semicolon",";"], ["Quote","'"],
+        ["Enter","Enter"]
+    ],
+
+    [
+        ["ShiftLeft","Shift"],
+        ["KeyZ","Z"], ["KeyX","X"], ["KeyC","C"], ["KeyV","V"],
+        ["KeyB","B"], ["KeyN","N"], ["KeyM","M"],
+        ["Comma",","], ["Period","."], ["Slash","/"],
+        ["ShiftRight","Shift"]
+    ],
+
+    [
+        ["ControlLeft","Ctrl"],
+        ["MetaLeft","Win"],
+        ["AltLeft","Alt"],
+        ["Space","Space"],
+        ["AltRight","Alt"],
+        ["MetaRight","Win"],
+        ["ContextMenu","Menu"],
+        ["ControlRight","Ctrl"],
+
+        ["ArrowLeft","←"],
+        ["ArrowDown","↓"],
+        ["ArrowUp","↑"],
+        ["ArrowRight","→"]
+    ]
+
+];
+
+
+/* =========================
+   CREATE KEY
+========================= */
+
+function createKey(code, label) {
+
+    const key = document.createElement("div");
+
+    key.className = "key";
+    key.dataset.code = code;
+    key.textContent = label;
+
+    if (label === "Backspace")
+        key.classList.add("wide-225");
+
+    if (label === "Tab")
+        key.classList.add("wide-125");
+
+    if (label === "Caps")
+        key.classList.add("wide-150");
+
+    if (label === "Enter")
+        key.classList.add("wide-175");
+
+    if (label === "Shift")
+        key.classList.add("wide-200");
+
+    if (label === "Space")
+        key.classList.add("space");
+
+    if (["Ctrl","Win","Alt","Menu"].includes(label))
+        key.classList.add("wide-125");
+
+    key.id = "key-" + code;
+
+    return key;
+}
+
+
+/* =========================
+   RENDER
+========================= */
+
+function renderKeyboard() {
+
+    keyboard.innerHTML = "";
+
+    const selected = layoutSelect.value;
+
+    rows.forEach((row, rowIndex) => {
+
+        const rowElement = document.createElement("div");
+        rowElement.className = "row";
+
+        row.forEach(([code, label]) => {
+
+            /*
+              60%:
+              bỏ F-row và navigation
+            */
+
+            if (selected === "60") {
+
+                if (rowIndex === 0)
+                    return;
+
+                if (
+                    [
+                        "ArrowLeft",
+                        "ArrowDown",
+                        "ArrowUp",
+                        "ArrowRight",
+                        "MetaRight",
+                        "ContextMenu"
+                    ].includes(code)
+                )
+                    return;
+            }
+
+
+            /*
+              65%:
+              giữ arrow + navigation cơ bản
+            */
+
+            if (selected === "65") {
+
+                if (rowIndex === 0)
+                    return;
+
+                if (
+                    ["MetaRight","ContextMenu"].includes(code)
+                )
+                    return;
+            }
+
+
+            /*
+              75%:
+              giữ F-row
+            */
+
+            if (selected === "75") {
+
+                // Full function row
+            }
+
+
+            /*
+              TKL:
+              giống 80%, thêm navigation
+            */
+
+            if (selected === "tkl") {
+
+                // standard TKL
+            }
+
+
+            /*
+              Full:
+              thêm numpad
+            */
+
+            rowElement.appendChild(createKey(code, label));
+
+        });
+
+        keyboard.appendChild(rowElement);
+
+    });
+
+
+    if (selected === "full") {
+
+        addNumpad();
+
+    }
+
+}
+
+
+function addNumpad() {
+
+    const numpad = document.createElement("div");
+
+    numpad.style.display = "flex";
+    numpad.style.gap = "7px";
+    numpad.style.position = "absolute";
+    numpad.style.marginTop = "-325px";
+    numpad.style.marginLeft = "900px";
+
+    const keys = [
+        ["NumLock","Num"],
+        ["NumpadDivide","/"],
+        ["NumpadMultiply","*"],
+        ["NumpadSubtract","-"],
+
+        ["Numpad7","7"],
+        ["Numpad8","8"],
+        ["Numpad9","9"],
+        ["NumpadAdd","+"],
+
+        ["Numpad4","4"],
+        ["Numpad5","5"],
+        ["Numpad6","6"],
+
+        ["Numpad1","1"],
+        ["Numpad2","2"],
+        ["Numpad3","3"],
+        ["NumpadEnter","Enter"],
+
+        ["Numpad0","0"],
+        ["NumpadDecimal","."]
+    ];
+
+    const grid = document.createElement("div");
+
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(4, 55px)";
+    grid.style.gap = "7px";
+
+    keys.forEach(([code,label]) => {
+
+        const key = createKey(code,label);
+
+        if (code === "NumpadEnter" || code === "NumpadAdd")
+            key.style.height = "117px";
+
+        if (code === "Numpad0")
+            key.style.width = "117px";
+
+        grid.appendChild(key);
+
+    });
+
+    numpad.appendChild(grid);
+    keyboard.appendChild(numpad);
+
+}
+
+
+/* =========================
+   KEY EVENTS
+========================= */
+
+document.addEventListener("keydown", e => {
+
+    e.preventDefault();
+
+    const key = document.getElementById("key-" + e.code);
+
+    if (key) {
+
+        key.classList.add("pressed");
+
+        pressedKeys.add(e.code);
+
+        keyName.textContent =
+            e.key === " " ? "SPACE" : e.key;
+
+        keyCode.textContent = e.code;
+
+        status.textContent = "DOWN";
+
+        counter.textContent = pressedKeys.size;
+
+    }
+
+});
+
+
+document.addEventListener("keyup", e => {
+
+    const key = document.getElementById("key-" + e.code);
+
+    if (key)
+        key.classList.remove("pressed");
+
+    pressedKeys.delete(e.code);
+
+    status.textContent = "UP";
+
+    counter.textContent = pressedKeys.size;
+
+});
+
+
+/* =========================
+   RESET
+========================= */
+
+function resetKeys() {
+
+    document
+        .querySelectorAll(".key.pressed")
+        .forEach(k => k.classList.remove("pressed"));
+
+    pressedKeys.clear();
+
+    keyName.textContent = "-";
+    keyCode.textContent = "-";
+    status.textContent = "Waiting";
+    counter.textContent = "0";
+}
+
+
+/* =========================
+   CHANGE LAYOUT
+========================= */
+
+layoutSelect.addEventListener("change", () => {
+
+    resetKeys();
+    renderKeyboard();
+
+});
+
+
+renderKeyboard();
+
+</script>
+
+</body>
+</html>
+```
